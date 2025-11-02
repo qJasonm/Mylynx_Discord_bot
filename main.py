@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 import pandas as pd
+from ollama import Client
 
 # Load .env file
 load_dotenv()
@@ -15,7 +16,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# When bot is ready
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
@@ -59,6 +60,26 @@ async def event(ctx, date: str):
         # send each event separately, suppressing embeds
         await ctx.send(event_text, suppress_embeds=True)
 
-    
+@bot.command()
+async def q(ctx, question: str):
+
+    allowed_roles = {"Intern", "Admin", "Officer"}
+    user_roles = {r.name for r in ctx.author.roles}
+
+    if not allowed_roles & user_roles:  # intersection check
+        await ctx.send("Sorry You don't have permission to use this command.")
+        return
+
+    client = Client(
+    host='http://localhost:11434',
+    )
+    response = client.chat(model='gpt-oss', messages=[
+    {
+        'role': 'user',
+        'content': question,
+    },
+    ])
+    await ctx.send(response.message.content)
+
 # Run bot
 bot.run(TOKEN)
